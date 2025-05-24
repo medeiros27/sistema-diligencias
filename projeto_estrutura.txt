@@ -1,0 +1,29 @@
+sistema_diligencias/
+├── src/
+│   ├── __init__.py
+│   ├── main.py
+│   ├── sistema_diligencias.py
+│   ├── database.py
+│   ├── utils.py
+│   └── config.py
+├── assets/
+│   ├── icon.ico
+│   └── logo.png
+├── scripts/
+│   ├── install_dependencies.py
+│   ├── build.py
+│   ├── deploy_windows.bat
+│   └── deploy_linux.sh
+├── tests/
+│   ├── __init__.py
+│   ├── test_database.py
+│   ├── test_utils.py
+│   └── test_deploy.py
+├── docs/
+│   ├── README.md
+│   ├── INSTALL.md
+│   └── USER_MANUAL.md
+├── requirements.txt
+├── setup.py
+├── pyproject.toml
+└── .gitignore
