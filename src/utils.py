@@ -10,7 +10,37 @@ import logging
 import sys
 import shutil
 from datetime import datetime
-from pathlib import Path
+
+# Fallback para pathlib se não estiver disponível
+try:
+    from pathlib import Path
+    PATHLIB_AVAILABLE = True
+except ImportError:
+    PATHLIB_AVAILABLE = False
+    # Implementação básica de Path para compatibilidade
+    class Path:
+        def __init__(self, path):
+            self.path = str(path)
+        
+        def __str__(self):
+            return self.path
+        
+        def __truediv__(self, other):
+            return Path(os.path.join(self.path, str(other)))
+        
+        def exists(self):
+            return os.path.exists(self.path)
+        
+        def mkdir(self, exist_ok=False):
+            if not self.exists() or not exist_ok:
+                try:
+                    os.makedirs(self.path, exist_ok=exist_ok)
+                except OSError:
+                    pass
+        
+        @classmethod
+        def home(cls):
+            return cls(os.path.expanduser("~"))
 
 # Imports condicionais para compatibilidade
 try:
@@ -53,15 +83,24 @@ def setup_locale():
 
 def setup_logging():
     """Configura sistema de logging"""
-    from config import LOGS_DIR
+    try:
+        from config import LOGS_DIR
+        logs_dir = LOGS_DIR
+    except ImportError:
+        # Fallback se config não estiver disponível
+        logs_dir = get_app_data_dir() / "logs" if PATHLIB_AVAILABLE else Path(os.path.join(get_app_data_dir().path, "logs"))
+        if hasattr(logs_dir, 'mkdir'):
+            logs_dir.mkdir(exist_ok=True)
+        else:
+            os.makedirs(str(logs_dir), exist_ok=True)
     
-    log_file = LOGS_DIR / f"diligencias_{datetime.now().strftime('%Y%m%d')}.log"
+    log_file = logs_dir / f"diligencias_{datetime.now().strftime('%Y%m%d')}.log"
     
     logging.basicConfig(
         level=logging.INFO,
         format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
         handlers=[
-            logging.FileHandler(log_file, encoding='utf-8'),
+            logging.FileHandler(str(log_file), encoding='utf-8'),
             logging.StreamHandler(sys.stdout)
         ]
     )
@@ -159,13 +198,22 @@ def backup_database(db_path):
     if not os.path.exists(db_path):
         return False
     
-    from config import BACKUPS_DIR
+    try:
+        from config import BACKUPS_DIR
+        backups_dir = BACKUPS_DIR
+    except ImportError:
+        # Fallback se config não estiver disponível
+        backups_dir = get_app_data_dir() / "backups" if PATHLIB_AVAILABLE else Path(os.path.join(get_app_data_dir().path, "backups"))
+        if hasattr(backups_dir, 'mkdir'):
+            backups_dir.mkdir(exist_ok=True)
+        else:
+            os.makedirs(str(backups_dir), exist_ok=True)
     
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-    backup_path = BACKUPS_DIR / f"diligencias_backup_{timestamp}.db"
+    backup_path = backups_dir / f"diligencias_backup_{timestamp}.db"
     
     try:
-        shutil.copy2(db_path, backup_path)
+        shutil.copy2(db_path, str(backup_path))
         logging.info(f"Backup criado: {backup_path}")
         return True
     except Exception as e:
@@ -178,12 +226,16 @@ def get_app_data_dir():
     if sys.platform == "win32":
         app_data = os.getenv('APPDATA')
         if app_data:
-            app_dir = Path(app_data) / "SistemaDiligencias"
+            app_dir = Path(os.path.join(app_data, "SistemaDiligencias"))
         else:
-            app_dir = Path.home() / "SistemaDiligencias"
+            app_dir = Path(os.path.join(os.path.expanduser("~"), "SistemaDiligencias"))
     else:
-        home = Path.home()
-        app_dir = home / ".sistema_diligencias"
+        home_dir = os.path.expanduser("~")
+        app_dir = Path(os.path.join(home_dir, ".sistema_diligencias"))
     
-    app_dir.mkdir(exist_ok=True)
+    if hasattr(app_dir, 'mkdir'):
+        app_dir.mkdir(exist_ok=True)
+    else:
+        os.makedirs(str(app_dir), exist_ok=True)
+    
     return app_dir

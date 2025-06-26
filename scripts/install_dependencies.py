@@ -7,7 +7,33 @@ Script de instalação automática de dependências
 import subprocess
 import sys
 import os
-from pathlib import Path
+
+# Fallback para pathlib se não estiver disponível
+try:
+    from pathlib import Path
+    PATHLIB_AVAILABLE = True
+except ImportError:
+    PATHLIB_AVAILABLE = False
+    # Implementação básica de Path para compatibilidade
+    class Path:
+        def __init__(self, path):
+            self.path = str(path)
+        
+        def __str__(self):
+            return self.path
+        
+        def __truediv__(self, other):
+            return Path(os.path.join(self.path, str(other)))
+        
+        def exists(self):
+            return os.path.exists(self.path)
+        
+        def mkdir(self, exist_ok=False):
+            if not self.exists() or not exist_ok:
+                try:
+                    os.makedirs(self.path, exist_ok=exist_ok)
+                except OSError:
+                    pass
 
 
 def check_python_version():

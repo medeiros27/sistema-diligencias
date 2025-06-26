@@ -8,7 +8,33 @@ import subprocess
 import sys
 import os
 import shutil
-from pathlib import Path
+
+# Fallback para pathlib se não estiver disponível
+try:
+    from pathlib import Path
+    PATHLIB_AVAILABLE = True
+except ImportError:
+    PATHLIB_AVAILABLE = False
+    # Implementação básica de Path para compatibilidade
+    class Path:
+        def __init__(self, path):
+            self.path = str(path)
+        
+        def __str__(self):
+            return self.path
+        
+        def __truediv__(self, other):
+            return Path(os.path.join(self.path, str(other)))
+        
+        def exists(self):
+            return os.path.exists(self.path)
+        
+        def mkdir(self, exist_ok=False):
+            if not self.exists() or not exist_ok:
+                try:
+                    os.makedirs(self.path, exist_ok=exist_ok)
+                except OSError:
+                    pass
 
 
 def check_pyinstaller():
@@ -34,9 +60,9 @@ def build_executable():
     
     # Limpar diretórios anteriores
     if dist_dir.exists():
-        shutil.rmtree(dist_dir)
+        shutil.rmtree(str(dist_dir))
     if build_dir.exists():
-        shutil.rmtree(build_dir)
+        shutil.rmtree(str(build_dir))
     
     # Comando PyInstaller
     cmd = [
@@ -80,14 +106,14 @@ def create_distribution():
     # Copiar executável
     exe_path = dist_dir / "SistemaDiligencias.exe"
     if exe_path.exists():
-        shutil.copy2(exe_path, package_dir)
+        shutil.copy2(str(exe_path), str(package_dir))
     
     # Copiar documentação
     docs = ["README.md", "INSTALL.md", "USER_MANUAL.md"]
     for doc in docs:
         doc_path = Path("docs") / doc
         if doc_path.exists():
-            shutil.copy2(doc_path, package_dir)
+            shutil.copy2(str(doc_path), str(package_dir))
     
     # Criar diretório de exemplos
     examples_dir = package_dir / "exemplos"
