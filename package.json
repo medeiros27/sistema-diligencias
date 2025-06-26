@@ -1,0 +1,17 @@
+{
+  "name": "sistema-diligencias-web",
+  "version": "1.0.0",
+  "description": "Sistema de Controle de Diligências - Web Interface",
+  "main": "index.js",
+  "scripts": {
+    "dev": "python src/main.py",
+    "build": "python scripts/build.py",
+    "start": "python src/main.py",
+    "install-deps": "python scripts/install_dependencies.py"
+  },
+  "keywords": ["diligencias", "juridico", "python"],
+  "author": "medeiros27",
+  "license": "MIT",
+  "dependencies": {},
+  "devDependencies": {}
+}
