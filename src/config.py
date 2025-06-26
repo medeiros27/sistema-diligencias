@@ -6,12 +6,27 @@ Configurações centralizadas do sistema
 
 import os
 from pathlib import Path
-from utils import get_app_data_dir
 
 # Versão da aplicação
 VERSION = "2.0.0"
 APP_NAME = "Sistema de Controle de Diligências"
 AUTHOR = "medeiros27"
+
+def get_app_data_dir():
+    """Retorna diretório de dados da aplicação"""
+    import sys
+    if sys.platform == "win32":
+        app_data = os.getenv('APPDATA')
+        if app_data:
+            app_dir = Path(app_data) / "SistemaDiligencias"
+        else:
+            app_dir = Path.home() / "SistemaDiligencias"
+    else:
+        home = Path.home()
+        app_dir = home / ".sistema_diligencias"
+    
+    app_dir.mkdir(exist_ok=True)
+    return app_dir
 
 # Diretórios
 APP_DATA_DIR = get_app_data_dir()

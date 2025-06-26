@@ -8,6 +8,7 @@ import locale
 import os
 import logging
 import sys
+import shutil
 from datetime import datetime
 from pathlib import Path
 
@@ -52,10 +53,9 @@ def setup_locale():
 
 def setup_logging():
     """Configura sistema de logging"""
-    log_dir = Path("logs")
-    log_dir.mkdir(exist_ok=True)
+    from config import LOGS_DIR
     
-    log_file = log_dir / f"diligencias_{datetime.now().strftime('%Y%m%d')}.log"
+    log_file = LOGS_DIR / f"diligencias_{datetime.now().strftime('%Y%m%d')}.log"
     
     logging.basicConfig(
         level=logging.INFO,
@@ -159,14 +159,12 @@ def backup_database(db_path):
     if not os.path.exists(db_path):
         return False
     
-    backup_dir = Path("backups")
-    backup_dir.mkdir(exist_ok=True)
+    from config import BACKUPS_DIR
     
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-    backup_path = backup_dir / f"diligencias_backup_{timestamp}.db"
+    backup_path = BACKUPS_DIR / f"diligencias_backup_{timestamp}.db"
     
     try:
-        import shutil
         shutil.copy2(db_path, backup_path)
         logging.info(f"Backup criado: {backup_path}")
         return True
@@ -179,7 +177,10 @@ def get_app_data_dir():
     """Retorna diretório de dados da aplicação"""
     if sys.platform == "win32":
         app_data = os.getenv('APPDATA')
-        app_dir = Path(app_data) / "SistemaDiligencias"
+        if app_data:
+            app_dir = Path(app_data) / "SistemaDiligencias"
+        else:
+            app_dir = Path.home() / "SistemaDiligencias"
     else:
         home = Path.home()
         app_dir = home / ".sistema_diligencias"

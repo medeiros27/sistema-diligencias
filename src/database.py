@@ -152,9 +152,9 @@ class DatabaseManager:
                     COUNT(CASE WHEN status = 'Pendente' THEN 1 END) as pendentes,
                     COUNT(CASE WHEN status = 'Cumprida' THEN 1 END) as cumpridas,
                     COUNT(CASE WHEN status = 'Cancelada' THEN 1 END) as canceladas,
-                    SUM(valor_receber) as faturamento_total,
-                    SUM(CASE WHEN pago = 1 THEN valor_receber ELSE 0 END) as recebido,
-                    SUM(CASE WHEN pago = 0 THEN valor_receber ELSE 0 END) as a_receber
+                    COALESCE(SUM(valor_receber), 0) as faturamento_total,
+                    COALESCE(SUM(CASE WHEN pago = 1 THEN valor_receber ELSE 0 END), 0) as recebido,
+                    COALESCE(SUM(CASE WHEN pago = 0 THEN valor_receber ELSE 0 END), 0) as a_receber
                 FROM diligencias
             '''
             
@@ -165,9 +165,9 @@ class DatabaseManager:
             query = '''
                 SELECT 
                     COUNT(*) as total,
-                    SUM(valor_cobrado) as custos_total,
-                    SUM(CASE WHEN pago = 1 THEN valor_cobrado ELSE 0 END) as pago,
-                    SUM(CASE WHEN pago = 0 THEN valor_cobrado ELSE 0 END) as a_pagar
+                    COALESCE(SUM(valor_cobrado), 0) as custos_total,
+                    COALESCE(SUM(CASE WHEN pago = 1 THEN valor_cobrado ELSE 0 END), 0) as pago,
+                    COALESCE(SUM(CASE WHEN pago = 0 THEN valor_cobrado ELSE 0 END), 0) as a_pagar
                 FROM correspondentes
             '''
             
@@ -189,10 +189,77 @@ class DatabaseManager:
                 AND status = 'Cancelada'
             '''.format(days)
             
-            deleted = self.execute_query(query)
-            self.logger.info(f"Removidos {deleted} registros antigos")
-            return deleted
+            cursor = self.execute_query(query)
+            self.logger.info(f"Limpeza de registros executada")
+            return True
             
         except Exception as e:
             self.logger.error(f"Erro na limpeza de registros: {e}")
-            return 0
+            return False
+    
+    def insert_diligencia(self, data):
+        """Insere nova diligência"""
+        query = '''
+            INSERT INTO diligencias 
+            (data_solicitacao, solicitante, telefone_contato, tipo_demanda, 
+             numero_processo, data_demanda, status, horario, local_realizacao, 
+             valor_receber, observacoes)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        '''
+        
+        params = (
+            data.get('data_solicitacao'),
+            data.get('solicitante'),
+            data.get('telefone_contato'),
+            data.get('tipo_demanda'),
+            data.get('numero_processo'),
+            data.get('data_demanda'),
+            data.get('status', 'Pendente'),
+            data.get('horario'),
+            data.get('local_realizacao'),
+            data.get('valor_receber', 0),
+            data.get('observacoes')
+        )
+        
+        return self.execute_query(query, params)
+    
+    def get_all_diligencias(self):
+        """Retorna todas as diligências"""
+        query = '''
+            SELECT * FROM diligencias 
+            ORDER BY data_solicitacao DESC
+        '''
+        return self.execute_query(query, fetch=True)
+    
+    def update_diligencia(self, diligencia_id, data):
+        """Atualiza uma diligência"""
+        query = '''
+            UPDATE diligencias 
+            SET data_solicitacao=?, solicitante=?, telefone_contato=?, 
+                tipo_demanda=?, numero_processo=?, data_demanda=?, 
+                status=?, horario=?, local_realizacao=?, valor_receber=?, 
+                observacoes=?
+            WHERE id=?
+        '''
+        
+        params = (
+            data.get('data_solicitacao'),
+            data.get('solicitante'),
+            data.get('telefone_contato'),
+            data.get('tipo_demanda'),
+            data.get('numero_processo'),
+            data.get('data_demanda'),
+            data.get('status'),
+            data.get('horario'),
+            data.get('local_realizacao'),
+            data.get('valor_receber', 0),
+            data.get('observacoes'),
+            diligencia_id
+        )
+        
+        return self.execute_query(query, params)
+    
+    def delete_diligencia(self, diligencia_id):
+        """Remove uma diligência"""
+        query = 'DELETE FROM diligencias WHERE id = ?'
+        return self.execute_query(query, (diligencia_id,))
